@@ -1,10 +1,11 @@
-import { Info, RefreshCcw, ScrollText, FileText, Image, Music, Video } from 'lucide-react';
+import { Info, MessageSquare, RefreshCcw, ScrollText, FileText, Image, Music, Video } from 'lucide-react';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { getAgentSet, getAllAgents } from '../data/agents';
 import { useCoreStore } from '../integration/store/coreStore';
 import { useTeamStore, useActiveTeam } from '../integration/store/teamStore';
+import { useUiStore } from '../integration/store/uiStore';
 import { useSceneManager } from '../simulation/SceneContext';
 import { USER_COLOR } from '../theme/brand';
 import ResetModal from './ResetModal';
@@ -41,6 +42,18 @@ const ProjectView: React.FC = () => {
     // 3. Clear project state
     resetProject();
     setIsResetModalOpen(false);
+  };
+
+  // Starting a project otherwise required finding and clicking the Lead
+  // Agent's character in the 3D scene - not discoverable from this panel,
+  // which is the only thing visible on first load. This does the same two
+  // steps InspectorPanel's "Chat about the brief" button does
+  // (select the Lead Agent, then start the chat), just without requiring
+  // the user to find them in the scene first.
+  const handleTalkToLeadAgent = () => {
+    const leadIndex = activeTeam.leadAgent.index;
+    useUiStore.getState().setSelectedNpc(leadIndex);
+    scene?.startChat(leadIndex);
   };
 
   return (
@@ -110,7 +123,20 @@ const ProjectView: React.FC = () => {
             )}
           </div>
         ) : (
-          <p className="text-xs text-zinc-400 italic">No active brief. Talk to the Lead Agent to define your project.</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-zinc-400 italic">No active brief yet.</p>
+            {phase === 'idle' && (
+              <button
+                onClick={handleTalkToLeadAgent}
+                className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.98] bg-darkDelegation hover:bg-black text-white shadow-xl shadow-darkDelegation/10"
+              >
+                <MessageSquare size={14} strokeWidth={3} />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Talk to {activeTeam.leadAgent.name} to Start
+                </span>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

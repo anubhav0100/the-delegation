@@ -5,10 +5,10 @@
   "author": "Arturo Paracuellos <arturo@unboring.net>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arturitu/the-delegation.git"
+    "url": "https://github.com/anubhav0100/the-delegation.git"
   },
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",

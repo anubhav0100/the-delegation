@@ -47,15 +47,7 @@ const Header: React.FC = () => {
 
           <div className="flex items-center gap-3 min-w-0">
             <a
-              href="https://x.com/arturitu"
-              target="_blank"
-              rel="noopener"
-              className="text-[10px] font-medium text-zinc-400 hover:text-darkDelegation transition-colors truncate"
-            >
-              @arturitu
-            </a>
-            <a
-              href="https://github.com/arturitu/the-delegation"
+              href="https://github.com/anubhav0100/the-delegation"
               target="_blank"
               rel="noopener"
               className="text-zinc-300 hover:text-darkDelegation transition-colors shrink-0"

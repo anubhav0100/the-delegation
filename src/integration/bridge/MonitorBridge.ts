@@ -23,7 +23,23 @@ type ControlMessage =
       action: 'rejectTask';
       payload: { taskId: string; comments: string };
     }
-  | { type: 'control'; action: 'injectBrief'; payload: { brief: string } };
+  | { type: 'control'; action: 'injectBrief'; payload: { brief: string } }
+  | {
+      type: 'control';
+      action: 'createTask';
+      payload: {
+        title: string;
+        description: string;
+        assignedAgentId: number;
+        requiresUserApproval?: boolean;
+      };
+    };
+
+// agentIndex used for log entries attributed to the external controller
+// (the browser's AI Assistant) rather than one of Delegation's own agents -
+// mirrors the -1 = "System" convention ProjectView.tsx already uses for
+// token/cost usage not tied to a specific agent.
+const EXTERNAL_CONTROLLER_AGENT_INDEX = -1;
 
 function buildStateSnapshot() {
   const core = useCoreStore.getState();
@@ -65,6 +81,30 @@ function applyControlMessage(msg: ControlMessage) {
         core.startProject(msg.payload.brief);
       }
       break;
+    case 'createTask': {
+      // Only meaningful once a project is actually running - mirrors the
+      // core/agent/tools/proposeTask.ts tool Delegation's own agents use
+      // internally, so an externally-created task behaves identically to
+      // one an agent proposed itself (same status, same log entry shape).
+      if (core.phase !== 'working') {
+        break;
+      }
+      const { title, description, assignedAgentId, requiresUserApproval } =
+        msg.payload;
+      const newTask = core.addTask({
+        title,
+        description,
+        assignedAgentId,
+        status: 'scheduled',
+        requiresUserApproval: requiresUserApproval ?? false,
+      });
+      core.addLogEntry({
+        agentIndex: EXTERNAL_CONTROLLER_AGENT_INDEX,
+        action: `AI Assistant created task: "${title}"`,
+        taskId: newTask.id,
+      });
+      break;
+    }
   }
 }
 

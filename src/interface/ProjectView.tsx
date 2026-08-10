@@ -1,13 +1,15 @@
-import { Info, MessageSquare, RefreshCcw, ScrollText, FileText, Image, Music, Video } from 'lucide-react';
+import { Clock, Info, MessageSquare, RefreshCcw, ScrollText, FileText, Image, Music, Video } from 'lucide-react';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { getAgentSet, getAllAgents } from '../data/agents';
 import { useCoreStore } from '../integration/store/coreStore';
+import { useHistoryStore } from '../integration/store/historyStore';
 import { useTeamStore, useActiveTeam } from '../integration/store/teamStore';
 import { useUiStore } from '../integration/store/uiStore';
 import { useSceneManager } from '../simulation/SceneContext';
 import { USER_COLOR } from '../theme/brand';
+import HistoryModal from './HistoryModal';
 import ResetModal from './ResetModal';
 import PricingModal from './PricingModal';
 
@@ -31,12 +33,33 @@ const ProjectView: React.FC = () => {
   } = useCoreStore();
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const activeTeam = useActiveTeam();
   const scene = useSceneManager();
+  const historyCount = useHistoryStore((s) => s.entries.length);
 
   const hasLogs = actionLog.length > 0;
 
   const handleResetConfirm = () => {
+    // Archive a snapshot before resetProject() wipes everything - this is
+    // the only point a project's brief/output/stats would otherwise be
+    // lost for good, per ResetModal's own warning text.
+    const s = useCoreStore.getState();
+    if (s.tasks.length > 0 || s.finalOutput) {
+      useHistoryStore.getState().addEntry({
+        teamId: activeTeam.id,
+        teamName: activeTeam.teamName,
+        userBrief: s.userBrief,
+        finalOutput: s.finalOutput,
+        finalAssetType: s.finalAssetType,
+        finalAssetContent: s.finalAssetContent,
+        completed: s.phase === 'done',
+        taskCount: s.tasks.length,
+        totalTokenUsage: s.totalTokenUsage,
+        totalEstimatedCost: s.totalEstimatedCost,
+      });
+    }
+
     // 1. Reset the 3D scene (teleport agents, clear chat)
     scene?.resetScene();
     // 3. Clear project state
@@ -61,7 +84,19 @@ const ProjectView: React.FC = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-black text-darkDelegation leading-tight">Project Info</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="relative flex items-center justify-center w-7 h-7 rounded-lg text-zinc-400 hover:text-darkDelegation hover:bg-zinc-100 transition-colors"
+              title="Project history"
+            >
+              <Clock size={14} strokeWidth={2.5} />
+              {historyCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-zinc-300 text-white text-[8px] font-black flex items-center justify-center leading-none">
+                  {historyCount}
+                </span>
+              )}
+            </button>
             <div
               className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors border border-transparent"
               style={{
@@ -222,6 +257,10 @@ const ProjectView: React.FC = () => {
 
       {isPricingModalOpen && (
         <PricingModal onClose={() => setIsPricingModalOpen(false)} />
+      )}
+
+      {isHistoryModalOpen && (
+        <HistoryModal onClose={() => setIsHistoryModalOpen(false)} />
       )}
     </div>
   );
